@@ -79,6 +79,7 @@ func main() {
 	gRouter.HandleFunc("/", Homepage)
 	gRouter.HandleFunc("/readings/{id}", ReadingDetails)
 	gRouter.HandleFunc("/newReadingForm", addReadingForm)
+	gRouter.HandleFunc("/getReadingUpdateForm/{id}", editReadingForm)
 	gRouter.HandleFunc("/readings/{id}/delete", DeleteReading).Methods("DELETE")
 	gRouter.HandleFunc("/addReading", AddReading).Methods("POST")
 	gRouter.HandleFunc("/readings", fetchReadings)
@@ -148,6 +149,12 @@ func AddReading(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
 	title := r.FormValue("title")
 	description := r.FormValue("description")
+	password := r.FormValue("password")
+
+	if password != os.Getenv("PASSWORD") {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	query := "INSERT INTO readings (url, title, description) VALUES (?, ?, ?)"
 	stmt, err := db.Prepare(query)
@@ -165,4 +172,9 @@ func AddReading(w http.ResponseWriter, r *http.Request) {
 
 func addReadingForm(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "addReadingForm", nil)
+}
+
+func editReadingForm(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	tmpl.ExecuteTemplate(w, "editReadingForm", id)
 }

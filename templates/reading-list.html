@@ -2,9 +2,9 @@
 <ul>
     {{range .}}
     <li>
-        <span>{{.Title}}</span> <span>{{.Description}}</span> <span><a href="http://{{.Url}}"
+        <span>{{.Title}}</span> | <span>{{.Description}}</span> | <span><a href="{{.Url}}"
                 target="_blank">{{.Url}}</a></span>
-        [<a href="#" hx-get="/getreadingupdateform/{{.Id}}" hx-target="#addReadingForm" hx-swap="innerHTML">Edit</a>] |
+        [<a href="#" hx-get="/getReadingUpdateForm/{{.Id}}" hx-target="#readingForm" hx-swap="innerHTML">Edit</a>] |
         <a href="#" hx-delete="/readings/{{.Id}}/delete" hx-confirm="Are you sure you want to Delete this from your reading list?"
             hx-target="#readingList">[Delete]</a>
     </li>
