@@ -2,14 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 
-	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
@@ -30,16 +31,26 @@ func init() {
 }
 
 func initDb() {
-	var err error
-	database := os.Getenv("DATABASE")
-	token := os.Getenv("TOKEN")
-	url := "libsql://" + database + "?authToken=" + token
-	db, err = sql.Open("libsql", url)
-	if err != nil {
-		log.Fatal(err)
-	}
+	godotenv.Load()
 
-	if err = db.Ping(); err != nil {
+	var err error
+
+	database := os.Getenv("TURSO_DATABASE_URL")
+	token := os.Getenv("TURSO_AUTH_TOKEN")
+	url := database + "?authToken=" + token
+
+	fmt.Printf("Database URL: %s\n", url)
+
+	db, err = sql.Open("libsql", url)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open db %s: %s", url, err)
+		os.Exit(1)
+	}
+	fmt.Println("Connected to database")
+
+	err = db.Ping()
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -68,7 +79,7 @@ func main() {
 	gRouter.HandleFunc("/", Homepage)
 	gRouter.HandleFunc("/readings/{id}", ReadingDetails)
 	gRouter.HandleFunc("/newReadingForm", addReadingForm)
-	gRouter.HandleFunc("/readings/{id}/delete", DeleteReading)
+	gRouter.HandleFunc("/readings/{id}/delete", DeleteReading).Methods("DELETE")
 	gRouter.HandleFunc("/addReading", AddReading).Methods("POST")
 	gRouter.HandleFunc("/readings", fetchReadings)
 	err := http.ListenAndServe(":8080", gRouter)
@@ -117,7 +128,21 @@ func getReadings(db *sql.DB) ([]Reading, error) {
 	return readings, nil
 }
 
-func DeleteReading(w http.ResponseWriter, r *http.Request) {}
+func DeleteReading(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	query := "DELETE FROM readings WHERE id = ?"
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+	_, executeErr := stmt.Exec(id)
+	if executeErr != nil {
+		log.Fatal(executeErr)
+	}
+	readings, _ := getReadings(db)
+	tmpl.ExecuteTemplate(w, "readingList", readings)
+}
 
 func AddReading(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")

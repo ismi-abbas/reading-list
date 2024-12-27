@@ -2,10 +2,11 @@
 <ul>
     {{range .}}
     <li>
-        <span>{{.Title}}</span> <span>{{.Description}}</span> <span><a href="http://{{.Url}}" target="_blank">{{.Url}}</a></span> 
-        [<a href="#" hx-get="/gettaskupdateform/{{.Id}}" hx-target="#addTaskForm" hx-swap="innerHTML">Edit</a>] |
-        <a href="#" hx-delete="/tasks/{{.Id}}" hx-confirm="Are you sure you want to Delete this Task?"
-            hx-target="#taskList">[Delete]</a>
+        <span>{{.Title}}</span> <span>{{.Description}}</span> <span><a href="http://{{.Url}}"
+                target="_blank">{{.Url}}</a></span>
+        [<a href="#" hx-get="/getreadingupdateform/{{.Id}}" hx-target="#addReadingForm" hx-swap="innerHTML">Edit</a>] |
+        <a href="#" hx-delete="/readings/{{.Id}}/delete" hx-confirm="Are you sure you want to Delete this from your reading list?"
+            hx-target="#readingList">[Delete]</a>
     </li>
     {{end}}
 </ul>

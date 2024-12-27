@@ -17,23 +17,25 @@
 </head>
 
 <body>
-    <div style="width: 100vw; height: 100vh; display: flex; align-items: center; flex-direction: column;">
+    <div style="display: flex; align-items: center; flex-direction: column; justify-content: center;">
         <h1>Reading List</h1>
 
-        <nav>
+        <nav
+            style="display: flex; align-items: center; background-color: #F26B0F; color: white; width: 100%; justify-content: center;">
             <ul
                 style="list-style: none; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-around; gap: 1rem;">
                 <li>
-                    <a href="/">Home</a>
+                    <a href="/" style="text-decoration: none; color: white">Home</a>
                 </li>
                 <li>
-                    <a href="#" hx-get="/newReadingForm" hx-target="#readingForm">Add</a>
+                    <a style="text-decoration: none; color: white" href="#" hx-get="/newReadingForm"
+                        hx-target="#readingForm">Add</a>
                 </li>
             </ul>
         </nav>
 
         <div id="readingForm"></div>
-        <div id="readingList" hx-get="/readings" hx-trigger="load" hx-swap="innerHTML"></div>
+        <div id="readingList" hx-get="/readings" hx-trigger="load" hx-swap="innerHTML" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
     </div>
 </body>
 
