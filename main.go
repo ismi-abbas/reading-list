@@ -22,6 +22,27 @@ type Reading struct {
 	Url         string
 	Title       string
 	Description string
+	Source      string
+	Type        ReadingType
+	AddDate     string
+	AddTime     string
+}
+
+type ReadingType string
+
+const (
+	Article ReadingType = "article"
+	Book    ReadingType = "book"
+	Video   ReadingType = "video"
+)
+
+type ReadingForm struct {
+	Id          int64
+	Url         string
+	Title       string
+	Description string
+	Source      string
+	Type        ReadingType
 	AddDate     string
 	AddTime     string
 }
@@ -38,8 +59,6 @@ func initDb() {
 	database := os.Getenv("TURSO_DATABASE_URL")
 	token := os.Getenv("TURSO_AUTH_TOKEN")
 	url := database + "?authToken=" + token
-
-	fmt.Printf("Database URL: %s\n", url)
 
 	db, err = sql.Open("libsql", url)
 
@@ -61,6 +80,8 @@ func initDb() {
 		url TEXT NOT NULL,
 		title TEXT NOT NULL,
 		description TEXT,
+		source TEXT,
+		type TEXT,
 		add_date DATE DEFAULT CURRENT_DATE,
 		add_time TIME DEFAULT CURRENT_TIME
 	)`
@@ -68,6 +89,46 @@ func initDb() {
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Insert test data if table is empty
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM readings").Scan(&count)
+	if err != nil {
+		log.Printf("Error checking table count: %v", err)
+		return
+	}
+
+	if count == 0 {
+		log.Println("Inserting test data...")
+		testData := []struct {
+			url, title, description, source, readingType string
+		}{
+			{
+				url:         "https://go.dev/doc",
+				title:       "Go Documentation",
+				description: "Official Go programming language documentation",
+				source:      "go.dev",
+				readingType: string(Article),
+			},
+			{
+				url:         "https://github.com/ismi-abbas/reading-list",
+				title:       "Reading List Project",
+				description: "A simple reading list application built with Go",
+				source:      "GitHub",
+				readingType: string(Article),
+			},
+		}
+
+		for _, data := range testData {
+			_, err := db.Exec(
+				"INSERT INTO readings (url, title, description, source, type) VALUES (?, ?, ?, ?, ?)",
+				data.url, data.title, data.description, data.source, data.readingType,
+			)
+			if err != nil {
+				log.Printf("Error inserting test data: %v", err)
+			}
+		}
 	}
 }
 
@@ -77,12 +138,12 @@ func main() {
 
 	gRouter := mux.NewRouter()
 	gRouter.HandleFunc("/", Homepage)
-	gRouter.HandleFunc("/readings/{id}", ReadingDetails)
-	gRouter.HandleFunc("/newReadingForm", addReadingForm)
-	gRouter.HandleFunc("/getReadingUpdateForm/{id}", editReadingForm)
-	gRouter.HandleFunc("/readings/{id}/delete", DeleteReading).Methods("DELETE")
+	gRouter.HandleFunc("/getReadingList", FetchReadings).Methods("GET")
 	gRouter.HandleFunc("/addReading", AddReading).Methods("POST")
-	gRouter.HandleFunc("/readings", fetchReadings)
+	gRouter.HandleFunc("/newReadingForm", AddReadingForm)
+	gRouter.HandleFunc("/getReadingUpdateForm/{id}", EditReadingForm)
+	gRouter.HandleFunc("/readings/{id}/delete", DeleteReading).Methods("DELETE")
+
 	err := http.ListenAndServe(":8080", gRouter)
 	if err != nil {
 		log.Fatal(err)
@@ -91,19 +152,27 @@ func main() {
 }
 
 func Homepage(w http.ResponseWriter, r *http.Request) {
-	tmpl.ExecuteTemplate(w, "index.html", nil)
+	types := []string{"Article", "Blog Post", "Documentation", "Book", "Tutorial"}
+	tmpl.ExecuteTemplate(w, "index.html", types)
 }
 
-func fetchReadings(w http.ResponseWriter, r *http.Request) {
-	readings, _ := getReadings(db)
-	tmpl.ExecuteTemplate(w, "readingList", readings)
+func FetchReadings(w http.ResponseWriter, r *http.Request) {
+	readings, err := GetReadings(db)
+	if err != nil {
+		log.Printf("Error fetching readings: %v", err)
+		http.Error(w, "Failed to fetch readings", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "readingList", readings)
+	if err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+		return
+	}
 }
 
-func ReadingDetails(w http.ResponseWriter, r *http.Request) {
-	tmpl.ExecuteTemplate(w, "readingDetails.html", nil)
-}
-
-func getReadings(db *sql.DB) ([]Reading, error) {
+func GetReadings(db *sql.DB) ([]Reading, error) {
 	query := "SELECT * FROM readings"
 	rows, err := db.Query(query)
 	if err != nil {
@@ -115,7 +184,16 @@ func getReadings(db *sql.DB) ([]Reading, error) {
 
 	for rows.Next() {
 		var reading Reading
-		rowErr := rows.Scan(&reading.Id, &reading.Url, &reading.Title, &reading.Description, &reading.AddDate, &reading.AddTime)
+		rowErr := rows.Scan(
+			&reading.Id,
+			&reading.Url,
+			&reading.Title,
+			&reading.Description,
+			&reading.Source,
+			&reading.Type,
+			&reading.AddDate,
+			&reading.AddTime,
+		)
 
 		if rowErr != nil {
 			return nil, rowErr
@@ -134,47 +212,83 @@ func DeleteReading(w http.ResponseWriter, r *http.Request) {
 	query := "DELETE FROM readings WHERE id = ?"
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error preparing delete statement: %v", err)
+		http.Error(w, "Failed to delete reading", http.StatusInternalServerError)
+		return
 	}
 	defer stmt.Close()
-	_, executeErr := stmt.Exec(id)
-	if executeErr != nil {
-		log.Fatal(executeErr)
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		log.Printf("Error executing delete: %v", err)
+		http.Error(w, "Failed to delete reading", http.StatusInternalServerError)
+		return
 	}
-	readings, _ := getReadings(db)
-	tmpl.ExecuteTemplate(w, "readingList", readings)
+
+	readings, err := GetReadings(db)
+	if err != nil {
+		log.Printf("Error fetching readings after delete: %v", err)
+		http.Error(w, "Failed to fetch readings", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "readingList", readings)
+	if err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+		return
+	}
 }
 
 func AddReading(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
 	title := r.FormValue("title")
 	description := r.FormValue("description")
-	password := r.FormValue("password")
+	readingType := r.FormValue("type")
+	source := r.FormValue("source")
 
-	if password != os.Getenv("PASSWORD") {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+	if url == "" || title == "" {
+		http.Error(w, "URL and title are required", http.StatusBadRequest)
 		return
 	}
 
-	query := "INSERT INTO readings (url, title, description) VALUES (?, ?, ?)"
+	query := "INSERT INTO readings (url, title, description, type, source) VALUES (?, ?, ?, ?, ?)"
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error preparing insert statement: %v", err)
+		http.Error(w, "Failed to add reading", http.StatusInternalServerError)
+		return
 	}
 	defer stmt.Close()
-	_, executeErr := stmt.Exec(url, title, description)
-	if executeErr != nil {
-		log.Fatal(executeErr)
+
+	_, err = stmt.Exec(url, title, description, readingType, source)
+	if err != nil {
+		log.Printf("Error executing insert: %v", err)
+		http.Error(w, "Failed to add reading", http.StatusInternalServerError)
+		return
 	}
-	readings, _ := getReadings(db)
-	tmpl.ExecuteTemplate(w, "readingList", readings)
+
+	readings, err := GetReadings(db)
+	if err != nil {
+		log.Printf("Error fetching readings after insert: %v", err)
+		http.Error(w, "Failed to fetch readings", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "readingList", readings)
+
+	if err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+		return
+	}
 }
 
-func addReadingForm(w http.ResponseWriter, r *http.Request) {
+func AddReadingForm(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "addReadingForm", nil)
 }
 
-func editReadingForm(w http.ResponseWriter, r *http.Request) {
+func EditReadingForm(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	tmpl.ExecuteTemplate(w, "editReadingForm", id)
 }

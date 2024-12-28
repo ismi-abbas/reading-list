@@ -1,0 +1,43 @@
+{{ define "addReadingForm" }}
+<form hx-post="/addReading" hx-trigger="submit" hx-target="#readingList" hx-target="innerHTML"
+    style="margin-top: 1rem;">
+    <table>
+        <tbody>
+            <tr>
+                <td><label for="title">Title</label></td>
+                <td><input type="text" id="title" name="title" placeholder="Enter title" required /></td>
+            </tr>
+            <tr>
+                <td><label for="description">Description</label></td>
+                <td><input type="text" id="description" name="description" placeholder="Enter description" required />
+                </td>
+            </tr>
+            <tr>
+                <td><label for="type">Type</label></td>
+                <td>
+                    <select id="type" name="type" required>
+                        <option value="">Select a type</option>
+                        {{range .}}
+                        <option value="{{.}}">{{.}}</option>
+                        {{end}}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="url">URL</label></td>
+                <td><input type="url" id="url" name="url" placeholder="Enter URL" required /></td>
+            </tr>
+            <tr>
+                <td><label for="source">Source</label></td>
+                <td><input type="text" id="source" name="source" placeholder="Enter source" required /></td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center;">
+                    <button type="submit" class="submit-btn">Add Reading</button>
+                    <button type="reset" class="submit-btn">Reset</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</form>
+{{ end }}
