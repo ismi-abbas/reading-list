@@ -1,9 +1,16 @@
 {{define "readingList"}}
+<style>
+    .unread {
+        color: red;
+    }
+</style>
+
 <ol>
     {{range .}}
     <li class="reading-list">
         <span><b>{{.Title}}</b></span> | <span>{{.Description}}</span> | <span><a href="{{.Url}}"
                 target="_blank">{{.Url}}</a></span> | <span>{{.Type}}</span> | <span>{{.Source}}</span> |
+        <span>{{.AddDate}}</span> | <span class="{{ if eq .Status "unread" }}unread{{end}}">{{.Status}}</span>
         [<a href="#" hx-get="/getReadingUpdateForm/{{.Id}}" hx-target="#readingForm" hx-swap="innerHTML">Edit</a>] |
         <a href="#" hx-delete="/readings/{{.Id}}/delete"
             hx-confirm="Are you sure you want to Delete this from your reading list?"
@@ -11,4 +18,5 @@
     </li>
     {{end}}
 </ol>
+
 {{end}}

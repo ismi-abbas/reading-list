@@ -1,12 +1,8 @@
 {{ define "addReadingForm" }}
-<form hx-post="/addReading" hx-trigger="submit" hx-target="#readingList" hx-target="innerHTML"
-    style="margin-top: 1rem;">
+<form hx-post="/addReading" hx-trigger="submit" hx-target="#readingList" hx-target="innerHTML" style="margin-top: 1rem;"
+    id="addReadingForm">
     <table>
         <tbody>
-            <tr>
-                <td><label for="title">Title</label></td>
-                <td><input type="text" id="title" name="title" placeholder="Enter title" required /></td>
-            </tr>
             <tr>
                 <td><label for="description">Description</label></td>
                 <td><input type="text" id="description" name="description" placeholder="Enter description" required />
@@ -17,7 +13,7 @@
                 <td>
                     <select id="type" name="type" required>
                         <option value="">Select a type</option>
-                        {{range .}}
+                        {{range .types}}
                         <option value="{{.}}">{{.}}</option>
                         {{end}}
                     </select>

@@ -2,8 +2,8 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Document</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,25 +53,41 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>Reading List</h1>
-        <nav class="navigation">
-            <ol>
-                <li>
-                    <a href="/">Home</a>
-                </li>
-                <li>
-                    <a href="/categories">Categories</a>
-                </li>
-            </ol>
-        </nav>
+<div class="container">
+    <h1>Abbas's Treasures</h1>
+    <nav class="navigation">
+        <ol>
+            <li>
+                <a href="/">All ({{.allCount}})</a>
+            </li>
+            <li>
+                <a href="#" hx-get="/getReadingList?status=unread" hx-trigger="load"
+                   hx-swap="innerHTML"
+                   hx-target="#readingList">Unread ({{.unreadCount}})</a>
+            </li>
+            <li>
+                <a href="#" hx-get="/getReadingList?status=read" hx-trigger="load"
+                   hx-swap="innerHTML"
+                   hx-target="#readingList">Read ({{.readCount}})</a>
+            </li>
+            <li>
+                <a href="#" hx-get="/getReadingList?status=to-be-read" hx-trigger="load"
+                   hx-swap="innerHTML"
+                   hx-target="#readingList">To Be Read ({{.toBeReadCount}})</a>
+            </li>
+            <li>
+                <a href="#" hx-get="/getReadingList?status=halfway" hx-trigger="load"
+                   hx-swap="innerHTML"
+                   hx-target="#readingList">Halfway ({{.halfwayCount}})</a>
+            </li>
+        </ol>
+    </nav>
 
-        <div>STILL WIP! Don't spam hehehehe code: <span><a href="https://github.com/ismi-abbas/reading-list">code
+    <div>STILL WIP! Don't spam hehehehe code: <span><a href="https://github.com/ismi-abbas/reading-list">code
                     here</a></span></div>
-        {{template "addReadingForm" .}}
-        <div id="readingList" hx-get="/getReadingList" hx-trigger="load" hx-swap="innerHTML"></div>
-    </div>
-    </div>
+    {{template "addReadingForm" .}}
+    <div id="readingList" hx-get="/getReadingList?status=all" hx-trigger="load" hx-swap="innerHTML"></div>
+</div>
 </body>
 
 </html>
