@@ -374,43 +374,8 @@ func EditReadingForm(w http.ResponseWriter, r *http.Request) {
 
 var systemPrompt = `You are an expert summarizer with a unique ability to distill complex information into concise, descriptive titles. Your role is to take any input text and create a single, clear title that captures its essence. The title should be informative yet brief, ideally between 3-8 words. \n Rules: 1. Always respond with exactly one title\n 2. Never include additional explanations\n 3. Focus on the main theme or key message\n 4. Use clear, descriptive language\n 5. Avoid unnecessary articles (a, an, the)\n 6. Keep character count under 60`
 
-func checkURL(url string) bool {
-	client := &http.Client{
-		Timeout: 2 * time.Second,
-	}
-
-	resp, err := client.Get(url)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-
-	return resp.StatusCode == http.StatusOK
-}
-
-func getAvailableURL() string {
-	urls := []string{
-		"http://localhost:11434",
-		os.Getenv("LLAMA_API_URL_WINDOWS"),
-		os.Getenv("LLAMA_API_URL_LINUX"),
-	}
-
-	for _, baseURL := range urls {
-		if baseURL == "" {
-			continue
-		}
-
-		url := baseURL + "/api/chat"
-		if checkURL(url) {
-			return baseURL
-		}
-	}
-
-	return ""
-}
-
 func generateTitleWithLlama3(content string) string {
-	baseURL := getAvailableURL()
+	baseURL := os.Getenv("LLAMA_API_URL_WINDOWS")
 	if baseURL == "" {
 		fmt.Println("No available Llama API endpoints")
 		return ""
